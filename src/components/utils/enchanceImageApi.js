@@ -1,79 +1,57 @@
 /* eslint-disable no-undef */
-import axios from "axios";
 import { toast } from "react-toastify";
 
-API_KEY='wxbl5ou3d0x03rx93'
-BASE_URL='https://techhk.aoscdn.com/'
-
-
-console.log("API Base URL:", BASE_URL);
+// Enhancement presets for different image types
+const ENHANCEMENT_PRESETS = {
+  default: {
+    contrast: 1.2,
+    brightness: 1.05,
+    saturation: 1.3,
+  },
+  portrait: {
+    contrast: 1.1,
+    brightness: 1.1,
+    saturation: 1.2,
+  },
+  landscape: {
+    contrast: 1.3,
+    brightness: 1.1,
+    saturation: 1.4,
+  },
+};
 
 export const enhancedImageAPI = async (file) => {
-    try {
-        const taskId = await uploadImage(file);
-        console.log("Image uploaded with task ID:", taskId);
+  console.log("Processing file:", file);
+  try {
+    // Process the image using client-side techniques only
+    toast.info("Processing your image...");
 
-        const enhancedImageUrl = await pollForEnhancedImage(taskId);
-        console.log("Enhanced Image URL:", enhancedImageUrl);
+    // Create object URL for the original image
+    const originalUrl = URL.createObjectURL(file);
+    console.log("Original Image URL:", originalUrl);
 
-        return enhancedImageUrl;  
-    } catch (error) {
-        console.error("Error in enhancedImageAPI:", error);
-        toast.error("Failed to enhance the image");
-        return null;
-    }
+    // Apply enhancement directly via CSS filters
+    const enhancedData = {
+      original: originalUrl,
+      enhanced: originalUrl,
+      cssFilter: generateEnhancementFilter("default"),
+    };
+
+    return enhancedData;
+  } catch (error) {
+    console.error("Error in enhancedImageAPI:", error);
+    toast.error(
+      `Failed to process the image: ${error.message || "Unknown error"}`
+    );
+    return null;
+  }
 };
 
-// ✅ Upload Image and Get Task ID
-const uploadImage = async (file) => {
-    const formData = new FormData();
-    formData.append("image_file", file);
+// Generate CSS filter string based on preset
+const generateEnhancementFilter = (presetName = "default") => {
+  const preset = ENHANCEMENT_PRESETS[presetName] || ENHANCEMENT_PRESETS.default;
 
-    const { data } = await axios.post(`${BASE_URL}/api/tasks/visual/scale`, formData, {
-        headers: {
-            "Content-Type": "multipart/form-data",
-            "X-API-KEY": API_KEY,
-        },
-    });
-
-    if (!data?.data?.taskId) {
-        throw new Error("Failed to upload image! Please try again.");
-    }
-
-    return data.data.taskId;
-};
-
-// ✅ Fetch Enhanced Image
-const fetchEnhancedImage = async (taskId) => {
-    try {
-        const { data } = await axios.get(`${BASE_URL}/api/tasks/visual/scale/${taskId}`, {
-            headers: { "X-API-KEY": API_KEY },
-        });
-
-        console.log("Fetch Enhanced Image API Response:", data);
-
-        return { image: data?.data?.image || null, status: data?.data?.status || "processing" };
-    } catch (error) {
-        console.error("Error fetching enhanced image:", error);
-        return { image: null, status: "error" };
-    }
-};
-
-// ✅ Poll for Enhanced Image
-const pollForEnhancedImage = async (taskId, retries = 0) => {
-    if (retries >= 20) {
-        throw new Error("Failed to enhance the image after 20 retries! Please try again.");
-    }
-
-    const result = await fetchEnhancedImage(taskId);
-    console.log(`Polling attempt ${retries + 1}:`, result);
-
-    if (!result.image) {
-        console.log("Image still processing...");
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2s before retrying
-        return pollForEnhancedImage(taskId, retries + 1);
-    }
-
-    console.log("Final Enhanced Image URL:", result.image);
-    return result.image;  
+  return `contrast(${preset.contrast}) 
+          brightness(${preset.brightness}) 
+          saturate(${preset.saturation})`;
 };

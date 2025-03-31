@@ -1,12 +1,29 @@
 /* eslint-disable react/prop-types */
+import { toast } from "react-toastify";
+
 const ImageUpload = ({ uploadImageHandler }) => {
   const showImageHandler = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      uploadImageHandler(file);
+    if (!file) return;
+    
+    // File type validation
+    const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Unsupported file format! Please use PNG, JPG, or JPEG.");
+      e.target.value = null; // Reset input
+      return;
     }
+    
+    // File size validation (10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > maxSize) {
+      toast.error("Image file is too large! Maximum size is 10MB.");
+      e.target.value = null; // Reset input
+      return;
+    }
+    
+    uploadImageHandler(file); // Pass the file to the handler
   };
-  
 
   return (
     <div className="relative group bg-gray-800/50 backdrop-blur-lg shadow-2xl rounded-2xl p-8 w-full max-w-3xl transition-all border border-gray-700/30 hover:border-purple-400/40 hover:shadow-3xl">
